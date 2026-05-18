@@ -2,26 +2,24 @@ using System;
 using ElectricCalculatorBackend.Models;
 using ElectricCalculatorBackend.Services;
 
-var builder = WebApplication.CreateBuilder(args);
-
-// CORS Configuration to allow your React application to connect
+// Configuração de CORS aberta para Produção (Vercel)
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("http://localhost:5173") 
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
-builder.Services.AddOpenApi();
 
-// Dependency Injection registration
+builder.Services.AddOpenApi();
 builder.Services.AddSingleton<IElectricCalculatorService, ElectricCalculatorService>();
 
 var app = builder.Build();
 
-app.UseCors("AllowReact");
+// ATENÇÃO: Garanta que esta linha abaixo está usando o nome "AllowAll" exatamente igual à política de cima!
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
