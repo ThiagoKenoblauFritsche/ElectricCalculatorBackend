@@ -1,4 +1,4 @@
-# 1. Force the official Microsoft .NET 10.0 SDK container to compile the app
+# 1. Use the official Microsoft .NET 10.0 SDK container to compile the app
 FROM ://microsoft.com AS build
 WORKDIR /src
 
