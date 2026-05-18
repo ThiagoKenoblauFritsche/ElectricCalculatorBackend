@@ -2,7 +2,9 @@ using System;
 using ElectricCalculatorBackend.Models;
 using ElectricCalculatorBackend.Services;
 
-// Configuração de CORS aberta para Produção (Vercel)
+var builder = WebApplication.CreateBuilder(args);
+
+// 1. Configuração do CORS Totalmente Aberta para Produção (Vercel)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -14,11 +16,13 @@ builder.Services.AddCors(options =>
 });
 
 builder.Services.AddOpenApi();
+
+// Injeção de Dependência da calculadora
 builder.Services.AddSingleton<IElectricCalculatorService, ElectricCalculatorService>();
 
 var app = builder.Build();
 
-// ATENÇÃO: Garanta que esta linha abaixo está usando o nome "AllowAll" exatamente igual à política de cima!
+// Ativa o CORS com a política aberta
 app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
@@ -26,16 +30,13 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// API Endpoint Route
-// Update your API Route inside Program.cs to use the database context
-
+// Rota de Cálculo Principal
 app.MapGet("/calculate-power", (double voltage, double current, string type, IElectricCalculatorService calculator) =>
 {
     try
     {
         PowerResponse result;
 
-        // 1. Process the standard math logic via Polymorphism
         if (type?.ToLower() == "threephase")
         {
             var threePhaseObj = new ThreePhaseCircuit(voltage, current);
@@ -47,26 +48,19 @@ app.MapGet("/calculate-power", (double voltage, double current, string type, IEl
             result = calculator.CalculateActivePower(singlePhaseObj);
         }
 
-        // 2. DATABASE OPERATION: Save this action to the log history
-        // 'using var' opens the database bridge and closes it safely when done
+        // DATABASE OPERATION: Salva o histórico no SQLite
         using var db = new AppDbContext();
-
-        // We create a new row object using our flat DTO model class
         var newRecord = new CalculationRecord
         {
             Voltage = voltage,
             Current = current,
-            CircuitType = result.CircuitType, // Stores "Single-phase" or "Three-phase"
+            CircuitType = result.CircuitType,
             PowerWatts = result.PowerWatts
         };
 
-        // Add the row to the internal list
         db.Calculations.Add(newRecord);
-
-        // Tell the database to write this new line permanently to your computer storage
         db.SaveChanges();
 
-        // 3. Return the HTTP response back to React normally
         return Results.Ok(result);
     }
     catch (ArgumentException ex)
